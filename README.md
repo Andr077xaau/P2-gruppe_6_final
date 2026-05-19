@@ -41,4 +41,5 @@ when started open:
 - demo user: admin
 - demo password: 1234
 
-
+---
+gitignore og pom.xml lavet by ai
