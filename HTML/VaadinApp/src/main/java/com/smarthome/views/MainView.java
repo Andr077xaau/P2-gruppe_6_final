@@ -105,6 +105,8 @@ public class MainView extends VerticalLayout implements BeforeEnterObserver {
                 "Forbrug denne måned: " + String.format("%.2f kWh", energyService.getMonthKWh(user)));
         Paragraph monthCost = new Paragraph( // cost for this month
                 "Estimeret måneds kost: " + String.format("%.2f DKK", energyService.getMonthCost(user)));
+        Paragraph maxDayUsage = new Paragraph( // highest one-day kWh this month
+                "Maksimalt dagsforbrug denne måned: " + String.format("%.2f kWh", energyService.getMaxDayKWhThisMonth(user)));
 
 
         // 7-day bar chart
@@ -123,7 +125,7 @@ public class MainView extends VerticalLayout implements BeforeEnterObserver {
         readingsTable.setWidthFull();
         readingsTable.setHeight("350px");
 
-        add(topBar, priceRow, todayUsage, monthUsage, monthCost, chartTitle, weekChart, tableTitle, readingsTable); // add all components to the view in a vertical layout
+        add(topBar, priceRow, todayUsage, monthUsage, monthCost, maxDayUsage, chartTitle, weekChart, tableTitle, readingsTable); // add all components to the view in a vertical layout
     }
 
 

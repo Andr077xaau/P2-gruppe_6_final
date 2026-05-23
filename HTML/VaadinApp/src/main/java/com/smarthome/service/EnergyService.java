@@ -5,9 +5,10 @@ import com.smarthome.model.EnergyReading; // EnergyReading model
 import com.smarthome.model.User; // User model
 import com.smarthome.repository.DeviceRepository; //device repository for database access
 import com.smarthome.repository.EnergyReadingRepository;// energy reading repository for database access
-import java.time.LocalDate; // calendar date 
+import java.time.LocalDate; // calendar date
 import java.time.LocalDateTime; // date + time
 import java.util.ArrayList; // growable list
+import java.util.HashMap; // map for grouping
 import java.util.LinkedHashMap; // Map that remembers insertion order
 
 // all device and energy-reading logic.
@@ -82,6 +83,21 @@ public class EnergyService {
 
     public double getMonthCost(User user) { //cost this month
         return getMonthKWh(user) * user.getPricePerKWh();
+    }
+
+
+    public double getMaxDayKWhThisMonth(User user) { // highest one-day kWh this month
+        LocalDateTime startOfMonth = LocalDate.now().withDayOfMonth(1).atStartOfDay(); // first day of month at midnight
+        LocalDateTime endOfMonth = startOfMonth.plusMonths(1); // first day of next month at midnight
+        ArrayList<EnergyReading> readings = readingRepository.findByUserByTime(user, startOfMonth); //all readings this month
+
+        HashMap<LocalDate, Double> daily = new HashMap<>(); 
+        for (EnergyReading r : readings) {
+            if (r.getRecordedAt().isBefore(endOfMonth)) {
+                daily.merge(r.getRecordedAt().toLocalDate(), r.getKWh(), Double::sum); // for each reading, get the date and add the kwh to the map, if there is already something for this date, sum them
+            }
+        }
+        return daily.values().stream().mapToDouble(Double::doubleValue).max().orElse(0.0); // find the maximum kWh value, return 0 ifno readings
     }
 
 
