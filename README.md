@@ -29,7 +29,7 @@ Maven 3.8 eller nyere (automatisere biblioteker)
 
 ### 2. Start applikationen
 skriv i terminalen:
-mvn spring-boot:run
+ mvn compile exec:java
 
 første gang maven vil instalere resurser, så det vil tage ca. 3 minnuter
 
