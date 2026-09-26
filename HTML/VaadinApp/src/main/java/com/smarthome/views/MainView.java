@@ -64,6 +64,12 @@ public class MainView extends VerticalLayout implements BeforeEnterObserver {
         });
 
         HorizontalLayout topBar = new HorizontalLayout(title, devicesButton, logoutButton); // put title and buttons in a horizontal row
+        if (user.isAdmin()) { // only admin can see button to manage users
+            Button usersButton = new Button("Brugere");
+            usersButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+            usersButton.addClickListener(e -> UI.getCurrent().navigate(AdminView.class));
+            topBar.addComponentAtIndex(1, usersButton);
+        }
         topBar.setWidthFull(); 
         topBar.setDefaultVerticalComponentAlignment(Alignment.CENTER); 
         topBar.expand(title); 

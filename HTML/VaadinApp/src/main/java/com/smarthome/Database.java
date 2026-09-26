@@ -4,6 +4,7 @@ import java.io.IOException; // for errors when reading files
 import java.io.InputStream; // to read the demo_prices.sql file
 import java.nio.charset.StandardCharsets; // UTF-8
 import java.sql.Connection; //to hold connection to the database
+import java.sql.ResultSet; // result of a query
 import java.sql.DriverManager; // to connect to the database
 import java.sql.SQLException;// for sql errors
 import java.sql.Statement; // to run SQL statements that dont have parameters
@@ -30,7 +31,13 @@ public class Database {
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     username TEXT NOT NULL UNIQUE,
                     password_hash TEXT NOT NULL,
-                    price_per_kwh REAL NOT NULL DEFAULT 2.50)""");
+                    price_per_kwh REAL NOT NULL DEFAULT 2.50,
+                    is_admin INTEGER NOT NULL DEFAULT 0,
+                    admin_id INTEGER REFERENCES users(id))""");
+
+            addColumnIfMissing(stmt, "users", "is_admin", "INTEGER NOT NULL DEFAULT 0"); // for old databases made before admin existed
+            addColumnIfMissing(stmt, "users", "admin_id", "INTEGER REFERENCES users(id)");
+            stmt.execute("UPDATE users SET is_admin = 1 WHERE username = 'admin'"); // demo user admin is always admin
 
             stmt.execute( // devices table
                 """
@@ -57,6 +64,15 @@ public class Database {
                     price_per_kwh REAL NOT NULL)""");
         }
         loadDemoPrices();
+    }
+
+    private void addColumnIfMissing(Statement stmt, String table, String column, String type) throws SQLException { // add column to old table if it doesnt have it
+        try (ResultSet rs = stmt.executeQuery("PRAGMA table_info(" + table + ")")) { // list of columns in table
+            while (rs.next()) {
+                if (rs.getString("name").equals(column)) return; // column already exists
+            }
+        }
+        stmt.execute("ALTER TABLE " + table + " ADD COLUMN " + column + " " + type);
     }
 
     private void loadDemoPrices() throws SQLException { // fill electricity_prices with demo data from demo_prices.sql

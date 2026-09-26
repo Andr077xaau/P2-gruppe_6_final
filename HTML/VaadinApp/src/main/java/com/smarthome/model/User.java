@@ -6,6 +6,8 @@ public class User {
     private String username; //login name
     private String passwordHash;   // BCrypt hash of password
     private double pricePerKWh = 2.50; //price in dkk/kwh
+    private boolean admin; // true if user is admin
+    private Long adminId; // id of the admin this user is under (null if none)
 
 
     //Getters og setters
@@ -20,4 +22,10 @@ public class User {
 
     public double getPricePerKWh() {return pricePerKWh;} //get price
     public void setPricePerKWh(double pricePerKWh) {this.pricePerKWh = pricePerKWh;} //set price
+
+    public boolean isAdmin() {return admin;} //is user admin
+    public void setAdmin(boolean admin) {this.admin = admin;} //set admin
+
+    public Long getAdminId() {return adminId;} //get id of users admin
+    public void setAdminId(Long adminId) {this.adminId = adminId;} //set id of users admin
 }

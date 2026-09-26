@@ -21,6 +21,8 @@ public class DataInitializer { //adds demo data to the database if the database 
         }
 
         User admin = userService.register("admin", "1234"); //add demo user
+        admin.setAdmin(true); // demo user is admin
+        userService.save(admin);
 
         Device tv     = energyService.addDevice(admin, "Fjernsyn",  120);  // add demo devices
         Device fridge = energyService.addDevice(admin, "Køleskab",  150); 
