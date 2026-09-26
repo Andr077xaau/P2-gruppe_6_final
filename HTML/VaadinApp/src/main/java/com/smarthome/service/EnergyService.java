@@ -7,6 +7,7 @@ import com.smarthome.repository.DeviceRepository; //device repository for databa
 import com.smarthome.repository.EnergyReadingRepository;// energy reading repository for database access
 import java.time.LocalDate; // calendar date
 import java.time.LocalDateTime; // date + time
+import java.time.LocalTime; // time of day
 import java.util.ArrayList; // growable list
 import java.util.HashMap; // map for grouping
 import java.util.LinkedHashMap; // Map that remembers insertion order
@@ -81,8 +82,16 @@ public class EnergyService {
     }
 
 
-    public double getMonthCost(User user) { //cost this month
-        return getMonthKWh(user) * user.getPricePerKWh();
+    public double getMonthCost(User user) { //cost this month, every reading uses the demo price for the hour it was recorded
+        LocalDateTime startOfMonth = LocalDate.now().withDayOfMonth(1).atStartOfDay(); // first day of month at midnight
+        LocalDateTime endOfMonth   = startOfMonth.plusMonths(1); // first day of next month at midnight
+        return readingRepository.sumCostBetween(user, startOfMonth, endOfMonth);
+    }
+
+
+    public double getCurrentPrice(User user) { // price in dkk/kwh right now, from electricity_prices
+        Double price = readingRepository.findPriceForHour(LocalTime.now().getHour());
+        return price != null ? price : user.getPricePerKWh(); // if no demo price, use the users own price
     }
 
 

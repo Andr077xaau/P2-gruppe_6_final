@@ -1,5 +1,8 @@
 package com.smarthome; // main package
 
+import java.io.IOException; // for errors when reading files
+import java.io.InputStream; // to read the demo_prices.sql file
+import java.nio.charset.StandardCharsets; // UTF-8
 import java.sql.Connection; //to hold connection to the database
 import java.sql.DriverManager; // to connect to the database
 import java.sql.SQLException;// for sql errors
@@ -46,6 +49,31 @@ public class Database {
                     hours_used REAL NOT NULL,
                     kwh REAL NOT NULL,
                     recorded_at TEXT NOT NULL)""");
+
+            stmt.execute(// electricity_prices table (demo price for each hour of the day)
+                """
+                CREATE TABLE IF NOT EXISTS electricity_prices (
+                    hour INTEGER PRIMARY KEY CHECK (hour BETWEEN 0 AND 23),
+                    price_per_kwh REAL NOT NULL)""");
+        }
+        loadDemoPrices();
+    }
+
+    private void loadDemoPrices() throws SQLException { // fill electricity_prices with demo data from demo_prices.sql
+        String script;
+        try (InputStream in = Database.class.getResourceAsStream("/demo_prices.sql")) { // file is in src/main/resources
+            if (in == null) throw new SQLException("demo_prices.sql not found");
+            script = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new SQLException("could not read demo_prices.sql", e);
+        }
+
+        try (Statement stmt = connection.createStatement()) {
+            for (String line : script.split("\n")) { // one INSERT per line
+                line = line.trim();
+                if (line.isEmpty() || line.startsWith("--")) continue; // skip empty lines and comments
+                stmt.execute(line);
+            }
         }
     }
 }

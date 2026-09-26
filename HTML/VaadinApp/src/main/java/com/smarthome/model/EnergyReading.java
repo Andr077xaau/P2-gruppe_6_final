@@ -9,6 +9,7 @@ public class EnergyReading {
     private double hoursUsed; //how long worked(hours)
     private double kWh; // energy used = (watts × hours) / 1000
     private LocalDateTime recordedAt; //when
+    private double pricePerKWh; // price in dkk/kwh when recorded (from electricity_prices)
 
     //Getters and setters
     public Long getId() { return id; }
@@ -28,4 +29,9 @@ public class EnergyReading {
 
     public LocalDateTime getRecordedAt() { return recordedAt; }
     public void setRecordedAt(LocalDateTime recordedAt) { this.recordedAt = recordedAt; }
+
+    public double getPricePerKWh() { return pricePerKWh; }
+    public void setPricePerKWh(double pricePerKWh) { this.pricePerKWh = pricePerKWh; }
+
+    public double getCost() { return kWh * pricePerKWh; } // price of this reading in dkk
 }

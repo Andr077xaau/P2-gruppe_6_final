@@ -13,6 +13,11 @@ public class EnergyReadingRepository {
     private final Database db; // database connection
     private final DeviceRepository deviceRepo; // device repository to load Device objects for readings
 
+    // select readings together with the demo price for the hour they were recorded (hour = "17" from "2026-05-15T17:30:00")
+    private static final String SELECT_WITH_PRICE =
+            "SELECT er.*, p.price_per_kwh FROM energy_readings er " +
+            "LEFT JOIN electricity_prices p ON p.hour = CAST(substr(er.recorded_at, 12, 2) AS INTEGER) ";
+
     public EnergyReadingRepository(Database db, DeviceRepository deviceRepo) { // give database connection and device repository to this repository
         this.db = db;
         this.deviceRepo = deviceRepo;
@@ -39,7 +44,7 @@ public class EnergyReadingRepository {
 
 
     public ArrayList<EnergyReading> findLast10ByUser(User user) { // select 10 last readings from user
-        String sql = "SELECT * FROM energy_readings WHERE user_id = ? ORDER BY recorded_at DESC LIMIT 10";
+        String sql = SELECT_WITH_PRICE + "WHERE er.user_id = ? ORDER BY er.recorded_at DESC LIMIT 10";
         ArrayList<EnergyReading> result = new ArrayList<>();
         try (PreparedStatement stmt = db.connect().prepareStatement(sql)) {
             stmt.setLong(1, user.getId());
@@ -56,7 +61,7 @@ public class EnergyReadingRepository {
 
 
     public ArrayList<EnergyReading> findByUserByTime(User user, LocalDateTime start) { // select all readings from user that are newer than start
-        String sql = "SELECT * FROM energy_readings WHERE user_id = ? AND recorded_at >= ?";
+        String sql = SELECT_WITH_PRICE + "WHERE er.user_id = ? AND er.recorded_at >= ?";
         ArrayList<EnergyReading> result = new ArrayList<>(); // make an arraylist to hold the results
         try (PreparedStatement stmt = db.connect().prepareStatement(sql)) { // make a preparedStatment variable with the sql
             stmt.setLong(1, user.getId()); // replace ? with the id
@@ -88,6 +93,37 @@ public class EnergyReadingRepository {
     }
 
 
+    public double sumCostBetween(User user, LocalDateTime start, LocalDateTime end) { // sum of price (kwh * price for the hour) between start and end
+        String sql = "SELECT COALESCE(SUM(er.kwh * COALESCE(p.price_per_kwh, ?)), 0) FROM energy_readings er " + // if no demo price for the hour, use the users own price
+                     "LEFT JOIN electricity_prices p ON p.hour = CAST(substr(er.recorded_at, 12, 2) AS INTEGER) " +
+                     "WHERE er.user_id = ? AND er.recorded_at >= ? AND er.recorded_at < ?";
+        try (PreparedStatement stmt = db.connect().prepareStatement(sql)) {
+            stmt.setDouble(1, user.getPricePerKWh());
+            stmt.setLong(2, user.getId());
+            stmt.setString(3, start.toString());
+            stmt.setString(4, end.toString());
+            try (ResultSet rs = stmt.executeQuery()) {
+                return rs.getDouble(1); // the SUM result
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("sumCostBetween failed", e);
+        }
+    }
+
+
+    public Double findPriceForHour(int hour) { // demo price for one hour of the day, null if not in database
+        String sql = "SELECT price_per_kwh FROM electricity_prices WHERE hour = ?";
+        try (PreparedStatement stmt = db.connect().prepareStatement(sql)) {
+            stmt.setInt(1, hour);
+            try (ResultSet rs = stmt.executeQuery()) {
+                return rs.next() ? rs.getDouble(1) : null;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("findPriceForHour failed", e);
+        }
+    }
+
+
     public void deleteByDevice(Device device) { // delete all readings for a device(when deleting device)
         String sql = "DELETE FROM energy_readings WHERE device_id = ?";
         try (PreparedStatement stmt = db.connect().prepareStatement(sql)) { 
@@ -106,6 +142,9 @@ public class EnergyReadingRepository {
         reading.setHoursUsed(rs.getDouble("hours_used"));
         reading.setKWh(rs.getDouble("kwh"));
         reading.setRecordedAt(LocalDateTime.parse(rs.getString("recorded_at"))); // make ISO-8601 string into a LocalDateTime object
+
+        double price = rs.getDouble("price_per_kwh"); // demo price for the hour the reading was recorded
+        reading.setPricePerKWh(rs.wasNull() ? user.getPricePerKWh() : price); // if no demo price, use the users own price
 
         long deviceId = rs.getLong("device_id");// Load the Device object by id
         Device device = deviceRepo.findByUser(user).stream() //make it stream to to find the device with the right id

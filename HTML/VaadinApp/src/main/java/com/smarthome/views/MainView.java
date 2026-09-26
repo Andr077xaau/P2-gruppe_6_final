@@ -4,7 +4,6 @@ import com.smarthome.ServiceLocator; //access to services
 import com.smarthome.model.EnergyReading; // energy reading model
 import com.smarthome.model.User; //user model
 import com.smarthome.service.EnergyService;//energy reading and device logic
-import com.smarthome.service.UserService; // user account logic
 import com.vaadin.flow.component.Component; // base class for UI components
 import com.vaadin.flow.component.UI; // the browser tab
 import com.vaadin.flow.component.button.Button;// button
@@ -15,17 +14,15 @@ import com.vaadin.flow.component.html.H2;// heading level 2
 import com.vaadin.flow.component.html.H3;// heading level 3 
 import com.vaadin.flow.component.html.Paragraph; // paragraph 
 import com.vaadin.flow.component.html.Span;  // inline text
-import com.vaadin.flow.component.notification.Notification; // popup
-import com.vaadin.flow.component.notification.NotificationVariant; // style notifications
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;  // horizontal layout
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;  // vertical layout
-import com.vaadin.flow.component.textfield.NumberField; // input field
 import com.vaadin.flow.router.BeforeEnterEvent;  // event before the view is shown
 import com.vaadin.flow.router.BeforeEnterObserver; // for redirecting unauthenticated users
 import com.vaadin.flow.router.PageTitle; //browser tab title
 import com.vaadin.flow.router.Route;  // maps a URL to this view
 import com.vaadin.flow.server.VaadinSession;  //session storage
 import java.time.LocalDate; // date
+import java.time.LocalTime; // time of day
 import java.time.format.DateTimeFormatter; // format date as string
 import java.util.Map; 
  
@@ -46,7 +43,6 @@ public class MainView extends VerticalLayout implements BeforeEnterObserver {
 
     public MainView() { //main view with dashboard and navigation to other views
         EnergyService energyService = ServiceLocator.energy(); // get the EnergyService
-        UserService   userService   = ServiceLocator.users();  // get the UserService
 
         User user = (User) VaadinSession.getCurrent().getAttribute("user"); // logged-in user
         if (user == null) return; //if user is null stop loading the view
@@ -73,29 +69,11 @@ public class MainView extends VerticalLayout implements BeforeEnterObserver {
         topBar.expand(title); 
 
 
-        //Electricity price row
-        NumberField priceField = new NumberField("Din pris per kWh i dkk"); // input field for the users price
-        priceField.setValue(user.getPricePerKWh()); //current price
-        priceField.setMin(0.01); 
-        priceField.setStep(0.01);
-
-        Button savePriceButton = new Button("Gem pris"); 
-        savePriceButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        savePriceButton.addClickListener(e -> {
-            Double newPrice = priceField.getValue();
-
-            if (newPrice == null || newPrice <= 0) {
-                Notification n = Notification.show("ikke gyldig pris", 3000, Notification.Position.MIDDLE); // show error if price is invalid
-                n.addThemeVariants(NotificationVariant.LUMO_ERROR);
-                return;
-            }
-            user.setPricePerKWh(newPrice); // update price for user
-            userService.save(user); // save user with the new price
-            UI.getCurrent().getPage().reload(); // reload page 
-        });
-
-        HorizontalLayout priceRow = new HorizontalLayout(priceField, savePriceButton); // put price field and button in a horizontal row
-       priceRow.setDefaultVerticalComponentAlignment(Alignment.END); // align button with field 
+        //Electricity price (from electricity_prices table in the database)
+        int hour = LocalTime.now().getHour(); // current hour, fx 17
+        Paragraph priceRow = new Paragraph( // price for this hour
+                "Nuværende elpris (kl. " + String.format("%02d:00-%02d:00", hour, (hour + 1) % 24) + "): "
+                + String.format("%.2f DKK/kWh", energyService.getCurrentPrice(user)));
 
 
         // Statistics
@@ -119,7 +97,7 @@ public class MainView extends VerticalLayout implements BeforeEnterObserver {
         Grid<EnergyReading> readingsTable = new Grid<>(EnergyReading.class, false); // make a table to show recent readings (false so it doesnt generate columns automatically)
         readingsTable.addColumn(r -> r.getDevice().getName()).setHeader("Enhed");
         readingsTable.addColumn(r -> String.format("%.2f kWh", r.getKWh())).setHeader("Forbrug");
-        readingsTable.addColumn(r -> String.format("%.2f DKK", r.getKWh() * user.getPricePerKWh())).setHeader("Pris");
+        readingsTable.addColumn(r -> String.format("%.2f DKK", r.getCost())).setHeader("Pris");
         readingsTable.addColumn(r -> r.getRecordedAt().format(DATE_FORMAT)).setHeader("Dato");
         readingsTable.setItems(energyService.getRecentReadings(user));
         readingsTable.setWidthFull();
