@@ -160,8 +160,8 @@ public class MainView extends VerticalLayout implements BeforeEnterObserver {
         chart.setSpacing(false); 
         chart.setWidthFull();
 
-        double max = dailyKWh.values().stream().mapToDouble(Double::doubleValue).max().orElse(1.0); // Max kwh value to scale bars, if Max is 0 use 1 instead to not divide by zero
-        //if (max == 0) max = 1.0; 
+        double max = dailyKWh.values().stream().mapToDouble(Double::doubleValue).max().orElse(0.0); // Max kwh value to scale bars
+        if (max == 0) max = 1.0; // if max is 0 use 1 instead to not divide by zero
 
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM"); // format date as "23/04"  
 
