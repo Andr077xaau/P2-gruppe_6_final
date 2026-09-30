@@ -32,7 +32,7 @@ public class UserRepository {
 
     public User save(User user) { // save a user to the database
         if (user.getId() == null) { // if its new user
-            String sql = "INSERT INTO users (username, password_hash, price_per_kwh, is_admin, admin_id) VALUES (?, ?, ?, ?, ?)";
+            String sql = "INSERT INTO users (username, password_hash, price_per_kwh, is_admin, admin_id, use_own_price) VALUES (?, ?, ?, ?, ?, ?)";
             try (PreparedStatement statement = db.connect().prepareStatement( // make a preparedStatment variable with the sql
                     sql, Statement.RETURN_GENERATED_KEYS)) { // RETURN_GENERATED_KEYS returns the autoincremented id
                 statement.setString(1, user.getUsername()); //replace ? with info from user object
@@ -40,6 +40,7 @@ public class UserRepository {
                 statement.setDouble(3, user.getPricePerKWh());
                 statement.setBoolean(4, user.isAdmin());
                 statement.setObject(5, user.getAdminId()); // setObject so it can be null
+                statement.setBoolean(6, user.isUseOwnPrice());
                 statement.executeUpdate(); // run sql command
                 try (ResultSet keys = statement.getGeneratedKeys()) { //makes variable "keys" with generated keys (new id)
                     if (keys.next()) user.setId(keys.getLong(1)); // store the new id back in the object
@@ -48,14 +49,15 @@ public class UserRepository {
                 throw new RuntimeException("save (insert) failed", e); // if something goes wrong with sql, make an exception
             }
         } else { // if user already exists
-            String sql = "UPDATE users SET username = ?, password_hash = ?, price_per_kwh = ?, is_admin = ?, admin_id = ? WHERE id = ?";
+            String sql = "UPDATE users SET username = ?, password_hash = ?, price_per_kwh = ?, is_admin = ?, admin_id = ?, use_own_price = ? WHERE id = ?";
             try (PreparedStatement statement = db.connect().prepareStatement(sql)) {
                 statement.setString(1, user.getUsername());
                 statement.setString(2, user.getPasswordHash());
                 statement.setDouble(3, user.getPricePerKWh());
                 statement.setBoolean(4, user.isAdmin());
                 statement.setObject(5, user.getAdminId());
-                statement.setLong(6, user.getId());
+                statement.setBoolean(6, user.isUseOwnPrice());
+                statement.setLong(7, user.getId());
                 statement.executeUpdate(); // run sql command
             } catch (SQLException e) {
                 throw new RuntimeException("save (update) failed", e);
@@ -121,6 +123,7 @@ public class UserRepository {
         user.setAdmin(rs.getBoolean("is_admin"));
         long adminId = rs.getLong("admin_id");
         user.setAdminId(rs.wasNull() ? null : adminId); // null if user has no admin
+        user.setUseOwnPrice(rs.getBoolean("use_own_price"));
         return user;
     }
 }

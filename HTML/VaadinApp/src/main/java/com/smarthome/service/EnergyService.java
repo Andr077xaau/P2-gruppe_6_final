@@ -63,7 +63,13 @@ public class EnergyService {
 
 
     public ArrayList<EnergyReading> getRecentReadings(User user) { // find 10 last readings for user
-        return readingRepository.findLast10ByUser(user);
+        ArrayList<EnergyReading> readings = readingRepository.findLast10ByUser(user);
+        if (user.isUseOwnPrice()) { // user uses own price, so ignore hourly prices
+            for (EnergyReading r : readings) {
+                r.setPricePerKWh(user.getPricePerKWh());
+            }
+        }
+        return readings;
     }
 
 
@@ -83,6 +89,9 @@ public class EnergyService {
 
 
     public double getMonthCost(User user) { //cost this month, every reading uses the demo price for the hour it was recorded
+        if (user.isUseOwnPrice()) {
+            return getMonthKWh(user) * user.getPricePerKWh(); // user uses own price for everything
+        }
         LocalDateTime startOfMonth = LocalDate.now().withDayOfMonth(1).atStartOfDay(); // first day of month at midnight
         LocalDateTime endOfMonth   = startOfMonth.plusMonths(1); // first day of next month at midnight
         return readingRepository.sumCostBetween(user, startOfMonth, endOfMonth);
@@ -90,6 +99,9 @@ public class EnergyService {
 
 
     public double getCurrentPrice(User user) { // price in dkk/kwh right now, from electricity_prices
+        if (user.isUseOwnPrice()) {
+            return user.getPricePerKWh(); // user uses own price
+        }
         Double price = readingRepository.findPriceForHour(LocalTime.now().getHour());
         return price != null ? price : user.getPricePerKWh(); // if no demo price, use the users own price
     }

@@ -8,6 +8,7 @@ public class User {
     private double pricePerKWh = 2.50; //price in dkk/kwh
     private boolean admin; // true if user is admin
     private Long adminId; // id of the admin this user is under (null if none)
+    private boolean useOwnPrice; // true if user wants to use own price instead of hourly prices from database
 
 
     //Getters og setters
@@ -28,4 +29,7 @@ public class User {
 
     public Long getAdminId() {return adminId;} //get id of users admin
     public void setAdminId(Long adminId) {this.adminId = adminId;} //set id of users admin
+
+    public boolean isUseOwnPrice() {return useOwnPrice;} //does user use own price
+    public void setUseOwnPrice(boolean useOwnPrice) {this.useOwnPrice = useOwnPrice;} //set if user uses own price
 }

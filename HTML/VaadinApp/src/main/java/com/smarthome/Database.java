@@ -33,10 +33,12 @@ public class Database {
                     password_hash TEXT NOT NULL,
                     price_per_kwh REAL NOT NULL DEFAULT 2.50,
                     is_admin INTEGER NOT NULL DEFAULT 0,
-                    admin_id INTEGER REFERENCES users(id))""");
+                    admin_id INTEGER REFERENCES users(id),
+                    use_own_price INTEGER NOT NULL DEFAULT 0)""");
 
             addColumnIfMissing(stmt, "users", "is_admin", "INTEGER NOT NULL DEFAULT 0"); // for old databases made before admin existed
             addColumnIfMissing(stmt, "users", "admin_id", "INTEGER REFERENCES users(id)");
+            addColumnIfMissing(stmt, "users", "use_own_price", "INTEGER NOT NULL DEFAULT 0"); // for old databases made before own price existed
             stmt.execute("UPDATE users SET is_admin = 1 WHERE username = 'admin'"); // demo user admin is always admin
 
             stmt.execute( // devices table
